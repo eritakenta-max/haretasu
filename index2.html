@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4A90D9">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="晴れタスク">
+  <title>晴れタスク - タスク達成で空が晴れる</title>
+  <link rel="manifest" href="./manifest.json">
+  <style>
+    /* =============================================
+       晴れタスク - メインスタイルシート
+       ============================================= */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --sky-cloudy: linear-gradient(180deg, #8B9CB0 0%, #B0BEC5 40%, #CFD8DC 100%);
+      --sky-partly: linear-gradient(180deg, #6B8BA4 0%, #90A4AE 40%, #B0C4CE 100%);
+      --sky-clearing: linear-gradient(180deg, #4A7FA8 0%, #64B5E0 50%, #87CEEB 100%);
+      --sky-blue: linear-gradient(180deg, #2C7BB6 0%, #4AABDF 50%, #73C8F0 100%);
+      --sky-sunny: linear-gradient(180deg, #1565C0 0%, #42A5F5 50%, #64B5F6 100%);
+      --white: #FFFFFF;
+      --text-primary: #1A2634;
+      --text-secondary: #546E7A;
+      --text-light: #90A4AE;
+      --accent-blue: #1976D2;
+      --danger: #E53935;
+      --success: #43A047;
+      --card-bg: rgba(255,255,255,0.92);
+      --card-shadow: 0 2px 12px rgba(0,0,0,0.12);
+      --border-radius: 16px;
+      --header-height: 50px;
+      --font-size-sm: 14px;
+    }
+
+    body {
+      font-family: -apple-system, 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      background: var(--sky-cloudy);
+      min-height: 100vh;
+      color: var(--text-primary);
+      overflow-x: hidden;
+      transition: background 1.5s ease;
+    }
+
+    body.weather-0   { background: var(--sky-cloudy); }
+    body.weather-25  { background: var(--sky-partly); }
+    body.weather-50  { background: var(--sky-clearing); }
+    body.weather-75  { background: var(--sky-blue); }
+    body.weather-100 { background: var(--sky-sunny); }
+
+    /* =============================================
+       トースト通知（お洒落なデザイン）
+       ============================================= */
+    #toast {
+      position: fixed;
+      top: calc(var(--header-height) + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: #fff;
+      z-index: 500;
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      opacity: 0;
+    }
+
+    #toast.toast-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #toast.toast-hidden {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-8px);
+    }
+
+    #toast.toast-info    { background: rgba(25, 118, 210, 0.92); }
+    #toast.toast-success { background: rgba(67, 160, 71, 0.92); }
+    #toast.toast-danger  { background: rgba(229, 57, 53, 0.92); }
+    #toast.toast-warning { background: rgba(255, 152, 0, 0.92); }
+
+    /* アプリのレイアウト */
+    .container { padding: 20px; max-width: 500px; margin: 0 auto; }
+    .card { background: var(--card-bg); padding: 20px; border-radius: var(--border-radius); box-shadow: var(--card-shadow); margin-bottom: 20px; }
+    input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+    button { background: var(--accent-blue); color: white; font-weight: bold; cursor: pointer; border: none; }
+    .task-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+    .delete-btn { width: auto; background: var(--danger); margin: 0; padding: 6px 12px; }
+  </style>
+</head>
+<body class="weather-0">
+
+  <div class="container">
+    <div class="card">
+      <h2>☀️ ハレタス</h2>
+      <p>タスクをこなして空を晴れにしよう！</p>
+      <input type="text" id="taskInput" placeholder="新しいタスクを入力...">
+      <button onclick="addTask()">タスクを追加</button>
+    </div>
+
+    <div class="card">
+      <h3>タスク一覧</h3>
+      <div id="taskList"></div>
+    </div>
+  </div>
+
+  <script>
+    // =============================================
+    // トースト通知（自動消去対応版）
+    // =============================================
+    let toastTimer = null;
+
+    function showToast(msg, type = 'info', duration = 3000) {
+      let toast = document.getElementById('toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        document.body.appendChild(toast);
+      }
+
+      if (toastTimer) {
+        clearTimeout(toastTimer);
+        toastTimer = null;
+      }
+
+      toast.textContent = msg;
+      toast.className = 'toast-visible toast-' + type;
+
+      toastTimer = setTimeout(() => {
+        toast.className = 'toast-hidden';
+        toastTimer = null;
+      }, duration);
+    }
+
+    // --- プッシュ通知＆サービスワーカー登録 ---
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(() => console.log('Service Worker Registered'));
+    }
+
+    function requestNotificationPermission() {
+      if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            showToast('通知が許可されました！', 'success');
+          }
+        });
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(requestNotificationPermission, 2000);
+      updateInterface();
+    });
+
+    // --- タスク管理ロジック ---
+    let tasks = JSON.parse(localStorage.getItem('haretasu_tasks')) || [];
+
+    function saveTasks() {
+      localStorage.setItem('haretasu_tasks', JSON.stringify(tasks));
+      updateInterface();
+    }
+
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      if (!input.value.trim()) return;
+      tasks.push({ id: Date.now(), text: input.value, completed: false });
+      input.value = '';
+      saveTasks();
+      showToast('タスクを追加しました！', 'info');
+    }
+
+    function toggleTask(id) {
+      tasks = tasks.map(t => {
+        if (t.id === id) {
+          const nextState = !t.completed;
+          if (nextState) {
+            showToast('タスク完了！空が晴れていきます', 'success');
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('ハレタス', { body: 'タスク達成おめでとう！☀️' });
+            }
+          }
+          return { ...t, completed: nextState };
+        }
+        return t;
+      });
+      saveTasks();
+    }
+
+    function deleteTask(id) {
+      tasks = tasks.filter(t => t.id !== id);
+      saveTasks();
+      showToast('タスクを削除しました', 'danger');
+    }
+
+    function updateInterface() {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      
+      if (tasks.length === 0) {
+        list.innerHTML = '<p style="color:var(--text-light)">タスクはありません</p>';
+        document.body.className = 'weather-0';
+        return;
+      }
+
+      const completedCount = tasks.filter(t => t.completed).length;
+      const progress = (completedCount / tasks.length) * 100;
+
+      tasks.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'task-item';
+        item.innerHTML = `
+          <label>
+            <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">
+            <span style="${t.completed ? 'text-decoration: line-through; color: var(--text-light);' : ''}">${t.text}</span>
+          </label>
+          <button class="delete-btn" onclick="deleteTask(${t.id})">削除</button>
+        `;
+        list.appendChild(item);
+      });
+
+      if (progress === 0) document.body.className = 'weather-0';
+      else if (progress <= 25) document.body.className = 'weather-25';
+      else if (progress <= 50) document.body.className = 'weather-50';
+      else if (progress <= 75) document.body.className = 'weather-75';
+      else document.body.className = 'weather-100';
+    }
+  </script>
+</body>
+</html>
