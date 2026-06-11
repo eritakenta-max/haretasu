@@ -430,7 +430,7 @@ body.weather-100 #today-progress-fill {
   inset: 0;
   background: rgba(255,220,50,0.15);
   z-index: 200;
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -439,6 +439,7 @@ body.weather-100 #today-progress-fill {
   transition: opacity 0.5s;
 }
 #completion-overlay.show {
+  display: flex;
   opacity: 1;
   pointer-events: auto;
 }
@@ -1229,7 +1230,7 @@ body.weather-100 #today-progress-fill {
 }
 
 /* --- カテゴリカラー --- */
-.cat-work    { background: #1976D2; }
+.cat-school  { background: #1976D2; }
 .cat-private { background: #7B1FA2; }
 .cat-health  { background: #388E3C; }
 .cat-other   { background: #F57C00; }
@@ -1275,6 +1276,125 @@ body.weather-100 #today-progress-fill {
   padding: 8px;
   margin-bottom: 4px;
 }
+
+/* =============================================
+   ゴミ箱モーダル
+   ============================================= */
+#trash-modal .modal-sheet { padding-bottom: 32px; }
+
+.trash-item {
+  background: white;
+  border-radius: var(--border-radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.trash-item .trash-info { flex: 1; min-width: 0; }
+.trash-item .trash-title {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+.trash-item .trash-meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.btn-restore {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 2px solid var(--success);
+  background: transparent;
+  color: var(--success);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.btn-restore:active { background: var(--success); color: white; }
+
+.btn-trash-del {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(229,57,53,0.1);
+  color: var(--danger);
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =============================================
+   カスタムカテゴリ追加UI
+   ============================================= */
+.cat-add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+}
+.cat-add-row input {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 20px;
+  border: 2px solid rgba(0,0,0,0.12);
+  background: white;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+.cat-add-row input:focus { border-color: var(--accent-blue); }
+.cat-add-row .btn-cat-add {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: none;
+  background: var(--accent-blue);
+  color: white;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.cat-chip .cat-del-btn {
+  margin-left: 4px;
+  font-size: 11px;
+  opacity: 0.7;
+  cursor: pointer;
+  vertical-align: middle;
+  line-height: 1;
+  display: inline-block;
+}
+.cat-chip .cat-del-btn:hover { opacity: 1; }
+
+/* やり残しチェック済みスタイル */
+.overdue-item .check-circle.completable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.overdue-item .check-circle.completable:active {
+  transform: scale(1.2);
+  background: var(--success);
+  border-color: var(--success);
+}
 </style>
   
 </head>
@@ -1303,6 +1423,7 @@ body.weather-100 #today-progress-fill {
       <div id="header-right">
         <button class="icon-btn" id="btn-search" aria-label="検索">🔍</button>
         <button class="icon-btn" id="btn-stats" aria-label="統計">📊</button>
+        <button class="icon-btn" id="btn-trash" aria-label="ゴミ箱">🗑</button>
       </div>
     </header>
 
@@ -1482,6 +1603,21 @@ body.weather-100 #today-progress-fill {
     </nav>
   </div>
 
+  <!-- ===== ゴミ箱モーダル ===== -->
+  <div class="modal-overlay" id="trash-modal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">🗑 ゴミ箱</div>
+      <div id="trash-list"></div>
+      <div id="trash-empty" class="empty-state" style="display:none">
+        <div class="empty-icon">✨</div>
+        <p>ゴミ箱は空です</p>
+      </div>
+      <button class="btn-danger" id="btn-trash-empty-all" style="margin-top:8px">すべて完全削除</button>
+      <button class="btn-cancel" id="btn-trash-close">閉じる</button>
+    </div>
+  </div>
+
   <!-- FAB -->
   <button class="fab" id="fab" aria-label="タスク追加">＋</button>
 
@@ -1493,7 +1629,7 @@ body.weather-100 #today-progress-fill {
 
       <div class="form-group">
         <label class="form-label">タイトル <span style="color:#E53935">*</span></label>
-        <input type="text" class="form-input" id="task-title" placeholder="例：営業電話10件" maxlength="60">
+        <input type="text" class="form-input" id="task-title" placeholder="例：レポート提出、数学の課題" maxlength="60">
       </div>
 
       <div class="form-group">
@@ -1515,10 +1651,13 @@ body.weather-100 #today-progress-fill {
       <div class="form-group" style="margin-top:14px">
         <label class="form-label">カテゴリ</label>
         <div class="cat-chips" id="task-cat-chips">
-          <div class="cat-chip selected" data-cat="work">💼 仕事</div>
-          <div class="cat-chip" data-cat="private">😊 プライベート</div>
-          <div class="cat-chip" data-cat="health">💪 健康</div>
-          <div class="cat-chip" data-cat="other">📌 その他</div>
+          <!-- JS の renderCatChips() で動的生成 -->
+        </div>
+        <div class="cat-add-row">
+          <input type="text" id="new-cat-emoji" placeholder="🏷" maxlength="4"
+                 style="width:52px;flex:none;text-align:center">
+          <input type="text" id="new-cat-label" placeholder="カテゴリ名" maxlength="12">
+          <button class="btn-cat-add" id="btn-cat-add">＋追加</button>
         </div>
       </div>
 
@@ -1542,7 +1681,7 @@ body.weather-100 #today-progress-fill {
 
       <div class="form-group">
         <label class="form-label">タイトル <span style="color:#E53935">*</span></label>
-        <input type="text" class="form-input" id="habit-title" placeholder="例：スクワット20回" maxlength="60">
+        <input type="text" class="form-input" id="habit-title" placeholder="例：英単語10個暗記、読書15分" maxlength="60">
       </div>
 
       <div class="form-group">
@@ -1579,7 +1718,7 @@ body.weather-100 #today-progress-fill {
 // データストア（IndexedDB + LocalStorage フォールバック）
 // =============================================
 const DB_NAME = 'HareTaskDB';
-const DB_VER  = 1;
+const DB_VER  = 2;
 let db = null;
 
 function openDB() {
@@ -1596,6 +1735,9 @@ function openDB() {
       }
       if (!d.objectStoreNames.contains('kv')) {
         d.createObjectStore('kv', { keyPath: 'key' });
+      }
+      if (!d.objectStoreNames.contains('trash')) {
+        d.createObjectStore('trash', { keyPath: 'id' });
       }
     };
     req.onsuccess = e => { db = e.target.result; resolve(db); };
@@ -1685,13 +1827,14 @@ function isFutureTask(task) {
 }
 
 function getCatClass(cat) {
-  const map = { work: 'cat-work', private: 'cat-private', health: 'cat-health', other: 'cat-other' };
-  return map[cat] || 'cat-other';
+  const map = { school: 'cat-school', private: 'cat-private', health: 'cat-health', other: 'cat-other' };
+  return map[cat] || 'cat-school';
 }
 
 function getCatLabel(cat) {
-  const map = { work: '💼 仕事', private: '😊 プライベート', health: '💪 健康', other: '📌 その他' };
-  return map[cat] || '📌 その他';
+  const found = allCategories().find(c => c.id === cat);
+  if (found) return `${found.emoji} ${found.label}`;
+  return '📌 その他';
 }
 
 function getWeatherLabel(pct) {
@@ -1711,12 +1854,29 @@ function getWeatherClass(pct) {
 }
 
 let toastTimer = null;
-function showToast(msg) {
+let _undoFn = null;
+
+function showToast(msg, withUndo = false, undoFn = null) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
+  _undoFn = undoFn || null;
+  if (withUndo && !undoFn) {
+    el.innerHTML = msg + ' <span id="toast-undo" style="text-decoration:underline;cursor:pointer;margin-left:8px">元に戻す▶</span>';
+    el.querySelector('#toast-undo')?.addEventListener('click', () => {
+      el.classList.remove('show');
+      openTrashModal();
+    });
+  } else if (withUndo && undoFn) {
+    el.innerHTML = msg + ' <span id="toast-undo" style="text-decoration:underline;cursor:pointer;margin-left:8px">元に戻す</span>';
+    el.querySelector('#toast-undo')?.addEventListener('click', () => {
+      el.classList.remove('show');
+      undoFn();
+    });
+  } else {
+    el.textContent = msg;
+  }
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
 }
 
 // =============================================
@@ -1735,6 +1895,7 @@ let taskEditId = null;
 let habitEditId = null;
 let futureAddDate = null;
 let statsCompletedTotal = 0;
+let customCategories = [];
 
 // =============================================
 // PWA / Service Worker
@@ -1749,11 +1910,19 @@ if ('serviceWorker' in navigator) {
 // =============================================
 // 初期化
 // =============================================
+let _appReady = false; // 起動完了フラグ（完了演出を起動時に発火させない）
+
 document.addEventListener('DOMContentLoaded', async () => {
   await openDB();
   tasks  = await dbGetAll('tasks');
   habits = await dbGetAll('habits');
   statsCompletedTotal = (await kvGet('totalDone')) || 0;
+
+  // カスタムカテゴリをLocalStorageから読込
+  try {
+    const saved = localStorage.getItem('customCategories');
+    customCategories = saved ? JSON.parse(saved) : [];
+  } catch(e) { customCategories = []; }
 
   // 今日の日付で過去タスクをチェック
   await checkDailyHabits();
@@ -1764,6 +1933,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindEvents();
   updateWeather();
   requestNotificationPermission();
+  _appReady = true; // ここ以降の操作からのみ演出を発火
 });
 
 // =============================================
@@ -1910,6 +2080,7 @@ function bindSwipe(card, taskId) {
     startY = pt.clientY;
     isDragging = true;
     isVertical = null;
+    currentX = 0;
     card.style.transition = 'none';
   }
 
@@ -1944,12 +2115,10 @@ function bindSwipe(card, taskId) {
     card.style.transition = '';
 
     if (currentX > THRESHOLD) {
-      // 右スワイプ → 完了
       card.classList.remove('swiping-right', 'swiping-left');
       card.classList.add('wiped');
       setTimeout(() => completeTask(taskId), 300);
     } else if (currentX < -THRESHOLD) {
-      // 左スワイプ → 削除確認
       card.classList.remove('swiping-right', 'swiping-left');
       card.classList.add('wiped-left');
       setTimeout(() => {
@@ -1969,12 +2138,24 @@ function bindSwipe(card, taskId) {
     currentX = 0;
   }
 
+  // タッチ操作
   card.addEventListener('touchstart', onStart, { passive: true });
   card.addEventListener('touchmove', onMove, { passive: false });
   card.addEventListener('touchend', onEnd);
-  card.addEventListener('mousedown', onStart);
-  document.addEventListener('mousemove', onMove);
-  document.addEventListener('mouseup', onEnd);
+  card.addEventListener('touchcancel', onEnd);
+
+  // マウス操作（document ではなく card + 一時的な window リスナーで管理）
+  card.addEventListener('mousedown', e => {
+    onStart(e);
+    function onMouseMove(ev) { onMove(ev); }
+    function onMouseUp() {
+      onEnd();
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    }
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  });
 }
 
 // =============================================
@@ -2005,19 +2186,130 @@ async function undoneTask(id) {
 }
 
 async function deleteTask(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  task.deletedAt = new Date().toISOString();
+  await dbPut('trash', task);
   tasks = tasks.filter(t => t.id !== id);
   await dbDelete('tasks', id);
   renderAll();
   updateWeather();
-  showToast('🗑 削除しました');
+  showToast('🗑 ゴミ箱に移動しました', true);
 }
 
 function checkAllDone() {
+  if (!_appReady) return; // 起動時の誤発火を防ぐ
   const today = todayStr();
   const todayTasks = tasks.filter(t => t.date === today && !t.isHabit);
   if (todayTasks.length > 0 && todayTasks.every(t => t.done)) {
     showCompletionEffect();
   }
+}
+
+// =============================================
+// ゴミ箱
+// =============================================
+async function openTrashModal() {
+  const trashItems = await dbGetAll('trash');
+  const list = document.getElementById('trash-list');
+  const empty = document.getElementById('trash-empty');
+  list.innerHTML = '';
+
+  if (trashItems.length === 0) {
+    empty.style.display = 'block';
+    list.style.display = 'none';
+  } else {
+    empty.style.display = 'none';
+    list.style.display = '';
+    trashItems.sort((a, b) => (b.deletedAt || '') > (a.deletedAt || '') ? 1 : -1);
+    trashItems.forEach(task => {
+      const item = document.createElement('div');
+      item.className = 'trash-item';
+      item.innerHTML = `
+        <div class="trash-info">
+          <div class="trash-title">${escHtml(task.title)}</div>
+          <div class="trash-meta">
+            ${task.date ? fmtDate(task.date) : '日付なし'} · ${getCatLabel(task.category)}
+            ${task.deletedAt ? ' · 削除: ' + fmtDate(task.deletedAt.slice(0,10)) : ''}
+          </div>
+        </div>
+        <button class="btn-restore" data-id="${task.id}">復元</button>
+        <button class="btn-trash-del" data-id="${task.id}" title="完全削除">×</button>
+      `;
+
+      item.querySelector('.btn-restore').addEventListener('click', async () => {
+        await restoreTask(task.id);
+        item.remove();
+        const remaining = list.querySelectorAll('.trash-item');
+        if (remaining.length === 0) {
+          empty.style.display = 'block';
+          list.style.display = 'none';
+        }
+      });
+
+      item.querySelector('.btn-trash-del').addEventListener('click', async () => {
+        if (confirm(`「${task.title}」を完全に削除しますか？`)) {
+          await dbDelete('trash', task.id);
+          item.remove();
+          const remaining = list.querySelectorAll('.trash-item');
+          if (remaining.length === 0) {
+            empty.style.display = 'block';
+            list.style.display = 'none';
+          }
+          showToast('🗑 完全削除しました');
+        }
+      });
+
+      list.appendChild(item);
+    });
+  }
+
+  document.getElementById('trash-modal').classList.add('open');
+}
+
+async function restoreTask(id) {
+  const trashItems = await dbGetAll('trash');
+  const task = trashItems.find(t => t.id === id);
+  if (!task) return;
+  delete task.deletedAt;
+  task.done = false;
+  task.doneAt = null;
+  if (task.date && task.date < todayStr()) task.date = todayStr();
+  await dbPut('tasks', task);
+  await dbDelete('trash', id);
+  tasks.push(task);
+  renderAll();
+  updateWeather();
+  showToast('♻️ タスクを復元しました');
+}
+
+async function emptyTrash() {
+  if (!confirm('ゴミ箱の全タスクを完全に削除しますか？\nこの操作は取り消せません。')) return;
+  const trashItems = await dbGetAll('trash');
+  for (const t of trashItems) await dbDelete('trash', t.id);
+  document.getElementById('trash-list').innerHTML = '';
+  document.getElementById('trash-empty').style.display = 'block';
+  showToast('🗑 ゴミ箱を空にしました');
+}
+
+// =============================================
+// やり残しタスク → 達成（今日の完了済みへ移動）
+// =============================================
+async function completeOverdueTask(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  task.date   = todayStr();
+  task.done   = true;
+  task.doneAt = new Date().toISOString();
+  await dbPut('tasks', task);
+  statsCompletedTotal++;
+  await kvSet('totalDone', statsCompletedTotal);
+  renderToday();
+  renderOverdue();
+  updateBadges();
+  updateWeather();
+  checkAllDone();
+  showToast('✅ やり残しを達成しました！');
 }
 
 function showCompletionEffect() {
@@ -2084,7 +2376,6 @@ function renderOverdue() {
 
   document.getElementById('overdue-longpress-tip').style.display = 'block';
 
-  // 日付順でソート（古い順）
   const sorted = overdueTasks.sort((a, b) => {
     const da = (a.date + (a.time || '')) || '';
     const db2 = (b.date + (b.time || '')) || '';
@@ -2096,7 +2387,7 @@ function renderOverdue() {
     item.className = 'overdue-item' + (overdueSelected.has(task.id) ? ' selected' : '');
     item.dataset.id = task.id;
     item.innerHTML = `
-      <div class="check-circle">${overdueSelected.has(task.id) ? '✓' : ''}</div>
+      <div class="check-circle completable" data-complete="${task.id}" title="達成にする">${overdueSelected.has(task.id) ? '✓' : ''}</div>
       <div class="overdue-info">
         <div class="overdue-date">⏰ ${fmtDatetime(task.date, task.time)}</div>
         <div class="overdue-title">${escHtml(task.title)}</div>
@@ -2107,6 +2398,12 @@ function renderOverdue() {
         <button class="ft-action-btn" onclick="deleteTask('${task.id}')" title="削除">🗑</button>
       </div>
     `;
+
+    // チェックサークル → 達成
+    item.querySelector('.check-circle').addEventListener('click', e => {
+      e.stopPropagation();
+      if (!overdueSelectMode) completeOverdueTask(task.id);
+    });
 
     let longPressTimer = null;
     item.addEventListener('touchstart', () => {
@@ -2122,7 +2419,6 @@ function renderOverdue() {
     list.appendChild(item);
   });
 
-  // セレクトバー
   const bar = document.getElementById('overdue-select-bar');
   if (overdueSelectMode) {
     bar.style.display = 'flex';
@@ -2541,7 +2837,7 @@ function openTaskModal(editId) {
   document.getElementById('task-time').value = '';
   document.getElementById('task-edit-id').value = editId || '';
   document.getElementById('notif-list').innerHTML = '';
-  selectCat('work');
+  renderCatChips('school');
 
   if (editId) {
     title.textContent = 'タスクを編集';
@@ -2551,7 +2847,7 @@ function openTaskModal(editId) {
       document.getElementById('task-memo').value = task.memo || '';
       document.getElementById('task-date').value = task.date || '';
       document.getElementById('task-time').value = task.time || '';
-      selectCat(task.category || 'work');
+      renderCatChips(task.category || 'school');
       (task.notifications || []).forEach(n => addNotifRow(n));
     }
   } else {
@@ -2567,6 +2863,76 @@ function closeTaskModal() {
   futureAddDate = null;
 }
 
+// =============================================
+// カスタムカテゴリ
+// =============================================
+const BUILTIN_CATS = [
+  { id: 'school',  emoji: '🎓', label: '学校' },
+  { id: 'private', emoji: '😊', label: 'プライベート' },
+  { id: 'health',  emoji: '💪', label: '健康' },
+  { id: 'other',   emoji: '📌', label: 'その他' },
+];
+
+function saveCustomCategories() {
+  try { localStorage.setItem('customCategories', JSON.stringify(customCategories)); } catch(e) {}
+}
+
+function allCategories() {
+  return [...BUILTIN_CATS, ...customCategories];
+}
+
+function renderCatChips(selectedCat) {
+  const container = document.getElementById('task-cat-chips');
+  container.innerHTML = '';
+  allCategories().forEach(cat => {
+    const chip = document.createElement('div');
+    chip.className = 'cat-chip' + (cat.id === selectedCat ? ' selected' : '');
+    chip.dataset.cat = cat.id;
+
+    const isCustom = !BUILTIN_CATS.find(b => b.id === cat.id);
+    chip.innerHTML = `${cat.emoji} ${cat.label}${isCustom
+      ? ` <span class="cat-del-btn" data-catid="${cat.id}" title="削除">✕</span>`
+      : ''}`;
+
+    chip.addEventListener('click', e => {
+      if (e.target.classList.contains('cat-del-btn')) return;
+      selectCat(cat.id);
+    });
+
+    if (isCustom) {
+      chip.querySelector('.cat-del-btn').addEventListener('click', e => {
+        e.stopPropagation();
+        deleteCustomCategory(cat.id);
+      });
+    }
+    container.appendChild(chip);
+  });
+}
+
+function deleteCustomCategory(catId) {
+  customCategories = customCategories.filter(c => c.id !== catId);
+  saveCustomCategories();
+  const current = getSelectedCat();
+  renderCatChips(current === catId ? 'school' : current);
+}
+
+function addCustomCategory() {
+  const emojiEl = document.getElementById('new-cat-emoji');
+  const labelEl = document.getElementById('new-cat-label');
+  const emoji = emojiEl.value.trim() || '🏷';
+  const label = labelEl.value.trim();
+  if (!label) { showToast('⚠ カテゴリ名を入力してください'); return; }
+  if (allCategories().find(c => c.label === label)) {
+    showToast('⚠ 同じ名前のカテゴリがあります'); return;
+  }
+  const newCat = { id: 'custom_' + Date.now(), emoji, label };
+  customCategories.push(newCat);
+  saveCustomCategories();
+  emojiEl.value = '';
+  labelEl.value = '';
+  renderCatChips(newCat.id);
+}
+
 function selectCat(cat) {
   document.querySelectorAll('#task-cat-chips .cat-chip').forEach(el => {
     el.classList.toggle('selected', el.dataset.cat === cat);
@@ -2575,7 +2941,7 @@ function selectCat(cat) {
 
 function getSelectedCat() {
   const el = document.querySelector('#task-cat-chips .cat-chip.selected');
-  return el ? el.dataset.cat : 'work';
+  return el ? el.dataset.cat : 'school';
 }
 
 function addNotifRow(minutes) {
@@ -2928,6 +3294,23 @@ function bindEvents() {
   document.getElementById('habit-title').addEventListener('keydown', e => {
     if (e.key === 'Enter') saveHabit();
   });
+
+  // ゴミ箱
+  document.getElementById('btn-trash').addEventListener('click', openTrashModal);
+  document.getElementById('btn-trash-close').addEventListener('click', () => {
+    document.getElementById('trash-modal').classList.remove('open');
+  });
+  document.getElementById('trash-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget)
+      document.getElementById('trash-modal').classList.remove('open');
+  });
+  document.getElementById('btn-trash-empty-all').addEventListener('click', emptyTrash);
+
+  // カスタムカテゴリ追加
+  document.getElementById('btn-cat-add').addEventListener('click', addCustomCategory);
+  document.getElementById('new-cat-label').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addCustomCategory();
+  });
 }
 
 // =============================================
@@ -2939,6 +3322,9 @@ window.deleteTask       = deleteTask;
 window.deleteHabit      = deleteHabit;
 window.undoneTask       = undoneTask;
 window.toggleHabitDone  = toggleHabitDone;
+window.openTrashModal   = openTrashModal;
+window.restoreTask      = restoreTask;
+window.completeOverdueTask = completeOverdueTask;
 </script>
 </body>
 </html>
